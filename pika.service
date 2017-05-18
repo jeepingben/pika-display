@@ -1,0 +1,12 @@
+[Unit]
+Description=Listens for updates from a pika inverter, forwards them to the db
+After=networking.service
+
+[Service]
+ExecStart=/root/pikaserver.pl
+Type=forking
+
+[Install]
+WantedBy=graphical.target
+
+

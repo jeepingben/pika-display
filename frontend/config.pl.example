@@ -1,0 +1,7 @@
+{
+dbname=>"pika",
+host=>"localhost",
+dbusername=>"pika-admin",
+dbpasswd=>'password',
+timezone=>"'-4:00'",
+}

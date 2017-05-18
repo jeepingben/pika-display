@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+
+use strict ;
+use warnings;
+use DBI;
+use JSON::XS;
+use Date::Parse;
+use IO::File;
+use POSIX;
+my $config;
+my $configfile = "config.pl";
+        unless ($config = do $configfile) {
+            die "couldn't parse $configfile: $@" if $@;
+            die "couldn't do $configfile: $!"    unless defined $config;
+            die "couldn't run $configfile"       unless $config;
+        }
+print "Access-Control-Allow-Origin: *\n";
+print "Content-type: text/json\n\n"; 
+my $json = JSON::XS->new->ascii->pretty->allow_nonref;
+
+my ( $dbname , $host, $dbusername, $dbpasswd,$filename,$timezone ) ; # Satisfy strict
+$dbname=$config->{dbname};
+$host=$config->{host};
+$dbusername=$config->{dbusername};
+$dbpasswd=$config->{dbpasswd};
+$timezone=$config->{timezone};
+
+my $datasource = "dbi:mysql:database=$dbname;host=$host";
+#PERL DBI CONNECT
+my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
+#PREPARE THE QUERY
+my $serials_query=qq(select distinct serial from power_statuses order by serial desc;);
+
+my $last_power_query =qq(select * from 
+   (select serial,name,status,type,watts_now,watthours_total,m,ti,DATE_FORMAT(update_time,'%Y-%m-%d %H:%i:%s -0004') as fupdate_time,voltage             
+    from power_statuses where serial =? order by update_time desc limit 1) as subq inner join status_messages on inverter_value = subq.status;);
+my $today_power_query = qq{select max(watthours_total)- min(watthours_total) as etoday from power_statuses 
+                                  where serial = ? and 
+                                  DAYOFYEAR(CONVERT_TZ(update_time,'+00:00',$timezone)) = DAYOFYEAR(CONVERT_TZ(now(),'+00:00',$timezone))};
+my $last_power_qhandle = $dbh->prepare($last_power_query);
+my $serials_handle1 = $dbh->prepare($serials_query);
+my $today_handle = $dbh->prepare($today_power_query);
+$serials_handle1->execute();
+my @chart1_data;
+	my %result ;
+while (my $srow = $serials_handle1->fetchrow_hashref){
+	my $serial = $srow->{'serial'};
+	$last_power_qhandle->execute($serial);
+	
+	while (my $row = $last_power_qhandle->fetchrow_hashref){
+	 
+		push (@chart1_data,{ 's' => $row->{'serial'}, 
+		                     'n'=> $row->{'name'},
+		                     'st'=> $row->{'message'},
+		                     'sc'=> $row->{'classification'},
+		                     't'=> $row->{'type'},
+		                     'p'=> $row->{'watts_now'}, 
+		                     'et'=> $row->{'watthours_total'}, 
+		                     'm'=> $row->{'m'}, 
+		                     'ti'=> $row->{'ti'}, 
+		                     'up'=> $row->{'fupdate_time'}, 
+		                     'v'=> $row->{'voltage'} 
+		                     
+		                     }); 
+	}
+	if (index($chart1_data[-1]{'t'},'Inverter')) {
+$today_handle->execute($serial);
+while(my $row = $today_handle->fetchrow_hashref)
+{
+$chart1_data[-1]{'ed'} = $row->{'etoday'};
+}
+}
+}
+
+
+
+
+$dbh->disconnect();
+
+#JSON OUTPUT
+my $chart1_data_json=encode_json( { dvcs => \@chart1_data } );
+print $chart1_data_json."\n";
