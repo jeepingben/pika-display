@@ -10,8 +10,6 @@ $(document).ready(function() {
     setInterval(updateScores, 180000);
 });
 
-//Get devices
-//For each device, add a widget
 function updateDevices() {
     $.getJSON("jeepingben.json", function(result) {
         loadNewData(result);
