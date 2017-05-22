@@ -14,7 +14,6 @@ function updateDevices() {
     $.getJSON("jeepingben.json", function(result) {
         loadNewData(result);
     });
-
 }
 
 function markAndUpdateDevices()
@@ -28,6 +27,7 @@ function loadNewData(powerData) {
         if ($("#" + this.s).length === 0) {
             addDevice(this.s, this.t);
         }
+        overrideStatus(this);
         $("#" + this.s + "inverterStatus").text(this.st);
         switch( this.sc)
         {
@@ -46,6 +46,19 @@ function loadNewData(powerData) {
         $("#" + this.s + "powerToday").text((this.ed / 1000.0).toFixed(1) + "Kwh");
 		  $("#" + this.s).removeClass("loading");
     });
+}
+
+function overrideStatus(device)
+{
+	// If data is stale, tell the user the device is offline
+	var lastupdate = new Date(Date(device.up));
+	var now = new Date();
+	var diff = now.getTime() - lastupdate.getTime();
+	if (now.getTime() - lastupdate.getTime() > 600 * 1000) //10 minutes
+	{
+		device.st = "Offline";
+		device.sc = "Bad";
+	}
 }
 
 function updateScores() {
