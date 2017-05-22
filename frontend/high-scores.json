@@ -39,9 +39,8 @@ my $datasource = "dbi:mysql:database=$dbname;host=$host";
 #PERL DBI CONNECT
 my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
 #PREPARE THE QUERY
-my $best_days_query = qq(select max(watthours_total)- min(watthours_total) as etoday,DATE(update_time) as update_time from power_statuses where serial =? group by DAYOFYEAR(CONVERT_TZ(update_time,'+00:00',$timezone)) order by etoday desc limit 10;);
-#my $best_output_query = qq(select watts_now as maxpower, update_time from power_statuses where serial =? order by maxpower desc limit 1;);
-my $best_output_query = qq(select CONVERT_TZ(update_time,'+00:00',$timezone) as update_time,watts_now as maxpower  from power_statuses where serial =? order by maxpower desc  limit 1;);
+my $best_days_query = qq(select max(watthours_total)- min(watthours_total) as etoday,DATE(update_time) as update_time from power_statuses where serial =? group by DATE(update_time) order by etoday desc limit 10;);
+my $best_output_query = qq(select update_time,watts_now as maxpower  from power_statuses where serial =? order by maxpower desc  limit 1;);
 
 my $best_days_qhandle = $dbh->prepare($best_days_query);
 my $best_output_qhandle = $dbh->prepare($best_output_query);
