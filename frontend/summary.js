@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    console.log("Ready");
+    hideError();
     addHighscores();
     markScoresLoading();
     updateScores();
@@ -11,9 +11,13 @@ $(document).ready(function() {
 });
 
 function updateDevices() {
-    $.getJSON("jeepingben.json", function(result) {
+    $.getJSON("jeepingben.json")
+    .done (function(result) {
+    	  hideError();
         loadNewData(result);
-    });
+    })
+    .fail (showError);
+    
 }
 
 function markAndUpdateDevices()
@@ -63,9 +67,22 @@ function overrideStatus(device)
 
 function updateScores() {
 	
-    $.getJSON("high-scores.json", function(result) {
+    $.getJSON("high-scores.json")
+    .done (function(result) {
+    	  hideError();
         loadHighScores(result);
-    });
+    })
+    .fail (showError);
+    	
+}
+
+function showError()
+{
+	$("#errormessage").show();
+}
+function hideError()
+{
+	$("#errormessage").hide();
 }
 
 function markDevicesLoading()
