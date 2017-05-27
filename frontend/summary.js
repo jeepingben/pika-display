@@ -113,7 +113,7 @@ function loadHighScores(scores) {
 
 function addDevice(serial, deviceType) {
 
-    $("<br><div id=" + serial + " class='rebusitem card '><span class='card-header'>" + deviceType + " " + serial + "</span>" +
+    $("<br><div id=" + serial + " class='rebusitem card '><span class='card-header'>" + deviceType + " <a href='energyhist.html?serial="+serial+"'>" + serial + "</a></span>" +
         "<div id='" + serial + "deviceBody' class='card-block'>" +
         "<img id='" + serial + "Icon' class='float-right deviceIcon img-fluid' onclick='markAndUpdateDevices()'></img>" +
         "Status: <div class='devicefield' id=" + serial + "inverterStatus></div>" +

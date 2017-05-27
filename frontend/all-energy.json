@@ -1,0 +1,72 @@
+#!/usr/bin/perl
+
+use strict ;
+use warnings;
+use JSON::XS;
+use HTTP::Date;
+use IO::File;
+
+use DBI qw(:sql_types);
+use POSIX;
+
+use CGI;
+my $query = new CGI;
+my $serial = lc($query->param('serial'));
+if (!$serial) #default for running from the cmdline
+{
+	$serial = '0001000700ab';
+}
+
+my $config;
+my $configfile = "config.pl";
+        unless ($config = do $configfile) {
+            die "couldn't parse $configfile: $@" if $@;
+            die "couldn't do $configfile: $!"    unless defined $config;
+            die "couldn't run $configfile"       unless $config;
+        }
+print "Access-Control-Allow-Origin: *\n";
+print "Content-type: text/json\n\n"; 
+my $json = JSON::XS->new->ascii->pretty->allow_nonref;
+
+my ( $dbname , $host , $port , $dbusername , $dbpasswd,$filename,$timezone ) ; # Satisfy strict
+$dbname=$config->{dbname};
+$host=$config->{host};
+$dbusername=$config->{dbusername};
+$dbpasswd=$config->{dbpasswd};
+$timezone=$config->{timezone};
+
+
+my $datasource = "dbi:mysql:database=$dbname;host=$host";
+#PERL DBI CONNECT
+my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
+#PREPARE THE QUERY
+my $all_energy_query = qq(SELECT max(watthours_total) - min(watthours_total) as daytotal,DATE(update_time) as starttime FROM power_statuses WHERE serial =? GROUP BY DATE(update_time) order by starttime;);
+
+my $all_energy_qhandle = $dbh->prepare($all_energy_query);
+
+$all_energy_qhandle->execute($serial);
+my %energy_data;
+
+my @wh_per_hour;
+
+	#Return daily energy totals
+	my ($time,$wh, $estimated);
+	while( my $row = $all_energy_qhandle->fetchrow_hashref ) {
+	my @wh_per_hour_entry;
+	
+	$estimated = \0;
+	#Send back the max energy reading for the day, but set the timestamp to 10:00 so the 
+	#bar-graph will look right.  
+	
+   push(@wh_per_hour_entry, ( $row->{'starttime'}));     
+	push(@wh_per_hour_entry, int($row->{'daytotal'})); 
+	push (@wh_per_hour, [@wh_per_hour_entry]);
+	}
+
+$energy_data{"energy"} = \@wh_per_hour;
+
+$dbh->disconnect();
+
+#JSON OUTPUT
+my $chart1_data_json=encode_json( \%energy_data );
+print $chart1_data_json."\n";
