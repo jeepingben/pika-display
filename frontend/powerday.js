@@ -14,17 +14,10 @@ $(document).ready(function()
 	serial = document.location.search.substr(8,99);
 	powerdata.datasets[0].label = serial;
 	addPowerChart();
-	addChart();
 	hideError();
-	setInterval(updateChart(),6000);
+	setInterval(updatePowerChart,300000); // new data available every 5 minutes
 }
 );
-Date.prototype.addDays = function(days) {
-  var dat = new Date(this.valueOf());
-  dat.setDate(dat.getDate() + days);
-  return dat;
-}
-
 
 function addPowerChart()
 {
@@ -52,8 +45,8 @@ function addPowerChart()
 	$.getJSON("all-power.json?serial="+serial+"&todayonly=true")
     .done (function(result) {
     	  hideError();
-    	  //addMissingDays(result);
         loadNewPowerData(result);
+       
     })
     .fail (showError);									
 }
@@ -67,14 +60,36 @@ function loadNewPowerData(incoming)
       time.setUTCSeconds(this[0]);
 		powerdata.labels.push(time.getHours() + ":"+ pad(time.getMinutes(),2));
 		
-		powerdata.datasets[0].data.push((this[1]).toFixed(0));
+		powerdata.datasets[0].data.push((this[1]));
 	}),powerChart.update();
 	
 }
-function updateChart()
+
+function updatePowerChart()
 {
-	
+	$.getJSON("jeepingben.json")
+    .done (function(result) {
+    	  hideError();
+    	  $.each(result.dvcs, function(){
+    	  
+    	  	if (this.s === serial)
+    	  	{
+            addPoint(this.p);
+            
+         }
+        });
+    })
+    .fail (showError);
+  }
+
+function addPoint(power)
+{
+	var time = new Date();
+	powerdata.labels.push(time.getHours() + ":"+pad(time.getMinutes(),2));
+	powerdata.datasets[0].data.push(power);
+	powerChart.update();
 }
+	
 function pad (str, max) {
   str = str.toString();
   return str.length < max ? pad("0" + str, max) : str;
