@@ -45,8 +45,8 @@ function loadNewData(powerData) {
         		$("#" + this.s + "inverterStatus").css('color', 'red');
         		break;
         }
-        $("#" + this.s + "powerNow").text(this.p + "W");
-        $("#" + this.s + "inverterTotal").text((this.et / 1000.0).toFixed(1) + "Kwh");
+        $("#" + this.s + "powerNow").html( "<a href='powerday.html?serial="+this.s+"'>" + this.p + "W</a>");
+        $("#" + this.s + "inverterTotal").html("<a href='energyhist.html?serial="+this.s+"'>" + (this.et / 1000.0).toFixed(1) + "Kwh</a>");
         $("#" + this.s + "powerToday").text((this.ed / 1000.0).toFixed(1) + "Kwh");
 		  $("#" + this.s).removeClass("loading");
     });
@@ -113,7 +113,7 @@ function loadHighScores(scores) {
 
 function addDevice(serial, deviceType) {
 
-    $("<br><div id=" + serial + " class='rebusitem card '><span class='card-header'>" + deviceType + " <a href='energyhist.html?serial="+serial+"'>" + serial + "</a></span>" +
+    $("<br><div id=" + serial + " class='rebusitem card '><span class='card-header'>" + deviceType + " " + serial + "</span>" +
         "<div id='" + serial + "deviceBody' class='card-block'>" +
         "<img id='" + serial + "Icon' class='float-right deviceIcon img-fluid' onclick='markAndUpdateDevices()'></img>" +
         "Status: <div class='devicefield' id=" + serial + "inverterStatus></div>" +

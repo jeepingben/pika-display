@@ -1,17 +1,19 @@
-var serial = "";
-var energydata = {};
-var energyHist = {};
-energydata.datasets=[];
-energydata.labels=[];
-energydata.datasets[0]={};
 
-energydata.datasets[0].backgroundColor = "#6F3D86";
-energydata.datasets[0].borderColor = "#70A4B2";
+var serial = "";
+var powerdata = {};
+var powerChart = {};
+powerdata.datasets=[];
+powerdata.labels=[];
+powerdata.datasets[0]={};
+
+powerdata.datasets[0].backgroundColor = "#9A6759";
+powerdata.datasets[0].borderColor = "#70A4B2";
 
 $(document).ready(function()
 {
 	serial = document.location.search.substr(8,99);
-	energydata.datasets[0].label = serial;
+	powerdata.datasets[0].label = serial;
+	addPowerChart();
 	addChart();
 	hideError();
 	setInterval(updateChart(),6000);
@@ -24,11 +26,11 @@ Date.prototype.addDays = function(days) {
 }
 
 
-function addChart()
+function addPowerChart()
 {
-	energyHist = new Chart($("#energybyday"), {
-										type: "bar",
-										data: energydata,
+	powerChart = new Chart($("#powertoday"), {
+										type: "line",
+										data: powerdata,
 										options:{responsive: true,
 										         zoom:{enabled: true,
 										               mode:   'x',},
@@ -36,59 +38,46 @@ function addChart()
                                             mode: 'x',},
                                        title:{
                                        			display:true,
-                                       			text: 'Energy Captured per Day',
+                                       			text: 'Power production today',
                                        		},
                                        tooltips:{
                                                 callbacks:
                                                 	{
                                                 	label: function(tooltipItems, data){
-                                                		return tooltipItems.yLabel + ' KWh';},
+                                                		return tooltipItems.yLabel + ' Watts';},
                                                 	}
                                                 },
 									}}
 										);
-	$.getJSON("all-energy.json?serial="+serial)
+	$.getJSON("all-power.json?serial="+serial+"&todayonly=true")
     .done (function(result) {
     	  hideError();
-    	  addMissingDays(result);
-        loadNewData(result);
+    	  //addMissingDays(result);
+        loadNewPowerData(result);
     })
     .fail (showError);									
 }
 
-function addMissingDays(energyarray)
+
+function loadNewPowerData(incoming)
 {
-	var date = new Date(energyarray.energy[0][0]);
-	var energyindex = 0;
-	var today = new Date();
-	while (date < today)
+	$.each(incoming.entries,function()
 	{
-		var foo = new Date(energyarray.energy[energyindex][0]);
+		var time = new Date(0);
+      time.setUTCSeconds(this[0]);
+		powerdata.labels.push(time.getHours() + ":"+ pad(time.getMinutes(),2));
 		
-		if (foo > date)
-		{
-			energyarray.energy.splice(energyindex, 0,[date.toISOString().substr(0,10) ,null]);
-		}
-		
-		date = date.addDays(1);
-		energyindex++;
-	}
-		
-}
-function loadNewData(incoming)
-{
-	$.each(incoming.energy,function()
-	{
-		energydata.labels.push( this[0]);
-		
-		energydata.datasets[0].data.push((this[1] / 1000.0).toFixed(1));
-	});
+		powerdata.datasets[0].data.push((this[1]).toFixed(0));
+	}),powerChart.update();
 	
-	energyHist.update();
 }
 function updateChart()
 {
 	
+}
+function pad (str, max) {
+  str = str.toString();
+  return str.length < max ? pad("0" + str, max) : str;
 }
 
 function showError()
