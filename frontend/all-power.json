@@ -1,0 +1,96 @@
+#!/usr/bin/perl
+
+use strict ;
+use warnings;
+use JSON::XS;
+use HTTP::Date;
+use IO::File;
+use DateTime;
+
+use DBI qw(:sql_types);
+use POSIX;
+
+use CGI;
+my $query = new CGI;
+my $serial = lc($query->param('serial'));
+my $todayonly = $query->param('today') =~ m/true/;
+my $startdate = $query->param('date');
+my $duration    = $query->param('duration');
+my $endtime = 0;
+ $todayonly = 1;
+
+if (!$serial) #default for running from the cmdline
+{
+        $serial = '0001000700ab';
+}
+if (!$date)
+{
+	$startdate='NOW()';
+}
+my $config;
+my $configfile = "config.pl";
+        unless ($config = do $configfile) {
+            die "couldn't parse $configfile: $@" if $@;
+            die "couldn't do $configfile: $!"    unless defined $config;
+            die "couldn't run $configfile"       unless $config;
+        }
+print "Access-Control-Allow-Origin: *\n";
+print "Content-type: text/json\n\n"; 
+my $json = JSON::XS->new->ascii->pretty->allow_nonref;
+
+my ( $dbname , $host , $port , $dbusername , $dbpasswd,$filename ) ; # Satisfy strict
+$dbname=$config->{dbname};
+$host=$config->{host};
+$dbusername=$config->{dbusername};
+$dbpasswd=$config->{dbpasswd};
+
+my $datasource = "dbi:mysql:database=$dbname;host=$host";
+#PERL DBI CONNECT
+my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
+#PREPARE THE QUERY
+my $all_power_query = qq(SELECT avg(watthours_total) as watthours_total,max(update_time) as update_time, ROUND(UNIX_TIMESTAMP(update_time)/(60 * 60)) AS timekey FROM power_statuses WHERE serial =? GROUP BY timekey order by update_time;);
+my $detail_power_query = qq(SELECT avg(watts_now) as watts,max(update_time) as update_time, ROUND(UNIX_TIMESTAMP(update_time)/(5 * 60)) AS timekey FROM power_statuses WHERE serial =? and update_time BETWEEN DATE($startdate) AND ($startdate + 1) GROUP BY timekey order by update_time;);
+my $detail_power_qhandle = $dbh->prepare($detail_power_query);
+my $all_power_qhandle = $dbh->prepare($all_power_query);
+
+my %power_data;
+$power_data{"serial"}=$serial;
+
+my @entries;
+#Return data at 5 minute intervals in the specified time period
+if ($todayonly)
+{
+	$detail_power_qhandle->execute($serial);
+
+	while( my $row = $detail_power_qhandle->fetchrow_hashref ) {
+	my @w_entry;
+	
+	push(@w_entry, ((str2time($row->{'update_time'}) )));   
+	push(@w_entry, int($row->{'watts'})); 
+	
+	push (@entries, [@w_entry]);
+	}
+}
+else #return hourly updates for the life of the system
+{
+	$all_power_qhandle->execute($serial);
+
+	while( my $row = $all_power_qhandle->fetchrow_hashref ) {
+	my @w_entry;
+	
+	push(@w_entry, ((str2time($row->{'update_time'}) ) * 1000));     
+	    
+	push(@w_entry, int($row->{'watts'}));            
+	
+	
+	push (@entries, [@w_entry]);
+	}
+}
+$power_data{"entries"} = \@entries;
+
+$dbh->disconnect();
+
+#JSON OUTPUT
+my $chart1_data_json=encode_json( \%power_data );
+print $chart1_data_json."\n";
+
