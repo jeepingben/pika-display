@@ -23,7 +23,7 @@ if (!$serial) #default for running from the cmdline
 {
         $serial = '0001000700ab';
 }
-if (!$date)
+if (!$startdate)
 {
 	$startdate='NOW()';
 }
