@@ -59,7 +59,9 @@ function loadNewPowerData(incoming)
 
 function updatePowerChart()
 {
-    if(date) {
+    var now = new Date();
+    var today = now.getFullYear()+""+pad(now.getMonth()+1, 2)+""+pad(now.getDate(),2);
+    if(date && date !== today ) {
         hideError();
         return;
     }
