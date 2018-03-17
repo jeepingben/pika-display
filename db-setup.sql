@@ -73,4 +73,18 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
+create table daily_summaries (serial VARCHAR(20), date DATE, max_power int(11), watthours_today int(11));
+create unique index device_day on daily_summaries(date, serial);
+
+delimiter #
+CREATE TRIGGER update_sum AFTER INSERT on power_statuses FOR EACH ROW 
+BEGIN
+  declare etoday int;
+  declare pmax int;
+  select max(watts_now), max(watthours_total) - min(watthours_total)  into @pmax, @etoday from power_statuses where update_time between curdate() and now() and serial = new.serial;
+
+  insert into daily_summaries (serial, date, max_power, watthours_today) values (new.serial, curdate(), @pmax, @etoday)
+  ON DUPLICATE KEY UPDATE watthours_today=@etoday, max_power=@pmax;
+END#
+delimiter ;
 -- Dump completed on 2017-05-15 20:31:31
