@@ -46,8 +46,12 @@ function loadNewData(powerData) {
         		break;
         }
         $("#" + this.s + "powerNow").html( "<a href='powerday.html?serial="+this.s+"'>" + this.p + "W</a>");
-        $("#" + this.s + "inverterTotal").html("<a href='energyhist.html?serial="+this.s+"'>" + (this.et / 1000.0).toFixed(1) + "Kwh</a>");
-        $("#" + this.s + "powerToday").text((this.ed / 1000.0).toFixed(1) + "Kwh");
+	if (this.t.indexOf("Inverter") !== -1) {
+        $("#" + this.s + "inverterTotal").html("<a href='energymonth.html?serial="+this.s+"'>" + (this.et / 1000.0).toFixed(1) + "Kwh</a>");
+        $("#" + this.s + "powerToday").html("<a href='energyhist.html?serial="+this.s+"'>" + (this.ed / 1000.0).toFixed(1) + "Kwh</a>");
+        } else {
+             $("#" + this.s + "inverterTotal").html("<a href='energyhist.html?serial="+this.s+"'>" + (this.et / 1000.0).toFixed(1) + "Kwh</a>");
+	}
 		  $("#" + this.s).removeClass("loading");
     });
 }
