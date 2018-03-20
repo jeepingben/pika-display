@@ -40,8 +40,7 @@ my $datasource = "dbi:mysql:database=$dbname;host=$host";
 my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
 #PREPARE THE QUERY
 my $best_days_query = qq(select watthours_today as etoday, date as update_time from daily_summaries where serial=? group by date order by watthours_today desc limit 10;);
-my $best_output_query = qq(select date, max_power from daily_summaries where serial=? order by max_power desc limit 1;);
-
+my $best_output_query = qq(select update_time, watts_now as maxpower from power_statuses use index(date_idx) inner join (select max_power, date, date + interval 1 day as nextdate, serial from daily_summaries where serial=? order by max_power desc limit 5) as ds on ds.max_power=watts_now and update_time between ds.date and ds.nextdate and power_statuses.serial = ds.serial;);
 my $best_days_qhandle = $dbh->prepare($best_days_query);
 my $best_output_qhandle = $dbh->prepare($best_output_query);
 
