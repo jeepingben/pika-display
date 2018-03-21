@@ -13,6 +13,7 @@ use CGI;
 my $query = new CGI;
 my $serial = lc($query->param('serial'));
 my $year = $query->param('year');
+my $bymonth = $query->param('bymonth');
 
 if (!$serial) #default for running from the cmdline
 {
@@ -45,10 +46,22 @@ my $datasource = "dbi:mysql:database=$dbname;host=$host";
 #PERL DBI CONNECT
 my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
 #PREPARE THE QUERY
-my $all_energy_query = qq(SELECT watthours_today as daytotal, date as starttime FROM daily_summaries where serial =? and YEAR(date) = ? group by date order by date;);
-my $all_energy_qhandle = $dbh->prepare($all_energy_query);
+#my $all_energy_query = qq(SELECT max(watthours_total) - min(watthours_total) as daytotal,DATE(update_time) as starttime FROM power_statuses WHERE serial =? AND YEAR(update_time) =? GROUP BY DATE(update_time) order by starttime;);
 
-$all_energy_qhandle->execute($serial);
+my $all_energy_query = qq(SELECT watthours_today as daytotal, date as starttime FROM daily_summaries where serial =? group by date order by date;);
+if ($bymonth)
+{
+	$all_energy_query = qq(select sum(watthours_today) as daytotal, date as starttime from daily_summaries where serial = ? group by YEAR(date), MONTH(date););
+}
+my $all_energy_qhandle = $dbh->prepare($all_energy_query);
+if ($bymonth)
+{
+    $all_energy_qhandle->execute($serial);
+}
+else
+{
+    $all_energy_qhandle->execute($serial);
+}
 my %energy_data;
 
 my @wh_per_hour;

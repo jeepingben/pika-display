@@ -1,79 +1,108 @@
-
 var serial = "";
 var date = "";
-var powerdata = {};
-var powerChart = {};
-powerdata.datasets=[];
-powerdata.labels=[];
-powerdata.datasets[0]={};
-
-powerdata.datasets[0].backgroundColor = "#9A6759";
-powerdata.datasets[0].borderColor = "#70A4B2";
+var powerdata = [];
+var powerChart = null;
 
 
 function addPowerChart()
 {
-    powerChart = new Chart($("#powertoday"), {
-                                        type: "line",
-                                        data: powerdata,
-                                        options:{responsive: true,
-                                                 zoom:{enabled: true,
-                                                       mode:   'x',},
-                                       pan:{enabled:true,
-                                            mode: 'x',},
-                                       title:{
-                                                   display:true,
-                                                   text: 'Power production for ' + ((!!date)?date:'today'),
-                                               },
-                                       tooltips:{
-                                                callbacks:
-                                                    {
-                                                    label: function(tooltipItems, data){
-                                                        return tooltipItems.yLabel + ' Watts';},
-                                                    }
-                                                },
-                                    }}
-                                        );
-    $.getJSON("all-power.json?serial="+serial+"&date="+date)
+	powerChart = new Highcharts.chart({
+                              chart: {
+                                 renderTo: 'powertoday',
+                                 zoomType: 'x',
+                                 panning: true,
+                                 panKey:  'shift',
+				 height:  '65%',
+                              },
+                              global: {
+                              	useUTC: false,
+                                 timezoneOffset: 4 * 60,
+                              },
+                              tooltip: {
+                                 valueSuffix: "watts",
+                                 formatter: function() { 
+var ttdate = new Date(this.x);
+var tooltip = "<tspan>" + ttdate.toLocaleString() + "</tspan><br><tspan>"+this.y+" <b>watts</b></tspan>";
+  return tooltip;},
+                              },
+                              series:  [{
+                                 type: 'area',
+                                 data: powerdata,
+                                 name: 'watts',
+                                 lineColor: '#70A4B2',
+                                 fillColor: '#9A6759',                             
+                                 
+                              }],
+                              xAxis: {
+                                    type: 'datetime',
+                                    labels: {
+	                                    formatter: function () {
+	                                    	var self = this;
+	                                    	self.value -= this.chart.options.global.timezoneOffset * 60000;
+	                                       var label = this.axis.defaultLabelFormatter.call(self);
+													   return label;
+												   },
+												},
+                                },
+                                
+                                yAxis: {
+                                    title: {
+                                       text: 'Power in watts'
+                                    },                                    
+                                },
+                              title:{
+                                                display:true,
+                                                text: 'Power production for ' + ((!!date)?date:'today'),
+
+                                             },
+                              plotOptions:{
+                                 area: {
+                                    fillColor:{
+                                       color: "red"},
+                                    threshold: null
+                                 }
+                              }
+                           }
+                              );
+        powerChart.series[0].data = powerdata;
+   $.getJSON("all-power.json?serial="+serial+"&date="+date)
     .done (function(result) {
-          hideError();
+         hideError();
         loadNewPowerData(result);
-       
+           
+        powerChart.series[0].update({},true);
     })
-    .fail (showError);                                    
+    .fail (showError);                           
 }
 
 
 function loadNewPowerData(incoming)
 {
-    $.each(incoming.entries,function()
-    {
-        var time = new Date(0);
-      time.setUTCSeconds(this[0]);
-        powerdata.labels.push(time.getHours() + ":"+ pad(time.getMinutes(),2));
-        
-        powerdata.datasets[0].data.push((this[1]));
-    }),powerChart.update();
-    
+   $.each(incoming.entries,function()
+   {
+      var time = new Date(this[0] * 1000)
+
+      var entry = [];
+      entry.push(this[0] * 1000);
+      entry.push(this[1]);
+      powerdata.push(entry);
+   });
+   
 }
 
 function updatePowerChart()
 {
-    var now = new Date();
-    var today = now.getFullYear()+""+pad(now.getMonth()+1, 2)+""+pad(now.getDate(),2);
-    if(date && date !== today ) {
-        hideError();
-        return;
-    }
+    if (date) {
+      return;
+    }   
     $.getJSON("jeepingben.json")
     .done (function(result) {
-          hideError();
-          $.each(result.dvcs, function(){
-          
-              if (this.s === serial)
-              {
+         hideError();
+         $.each(result.dvcs, function(){
+         
+            if (this.s === serial)
+            {
             addPoint(this.p);
-            
          }
         });
     })
@@ -82,12 +111,14 @@ function updatePowerChart()
 
 function addPoint(power)
 {
-    var time = new Date();
-    powerdata.labels.push(time.getHours() + ":"+pad(time.getMinutes(),2));
-    powerdata.datasets[0].data.push(power);
-    powerChart.update();
+   var entry = [];
+   var time = new Date();
+      entry.push(time.getHours() + ":"+pad(time.getMinutes(),2));
+      entry.push(power);
+      powerdata.push(entry);
+powerChart.series[0].addPoint(entry,true,true);
 }
-    
+   
 function pad (str, max) {
   str = str.toString();
   return str.length < max ? pad("0" + str, max) : str;
@@ -95,20 +126,19 @@ function pad (str, max) {
 
 function showError()
 {
-    $("#errormessage").show();
+   $("#errormessage").show();
 }
 function hideError()
 {
-    $("#errormessage").hide();
+   $("#errormessage").hide();
 }
 
 function changeDate()
 {
     var newdate=new Date(Date.parse($("#datepicker").val()));
     date=newdate.getFullYear()+""+pad(newdate.getMonth()+1, 2)+""+pad(newdate.getDate(),2);
-powerdata.labels=[];
 powerChart.options.title.text= 'Power production for ' + ((!!date)?date:'today');
-powerdata.datasets[0].data=[];
+powerdata=[];
     addPowerChart();
 }
 $(document).ready(function()
@@ -127,9 +157,12 @@ $(document).ready(function()
        date = item[1];
     }
   });
-    powerdata.datasets[0].label = serial;
+    
     addPowerChart();
     hideError();
     setInterval(updatePowerChart,300000); // new data available every 5 minutes
 }
 );
+
+
+

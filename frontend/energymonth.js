@@ -1,19 +1,22 @@
 var serial = "";
-var energydata = {};
+var year = "";
+var energydata = [];
 var energyHist = {};
-energydata.datasets=[];
-energydata.labels=[];
-energydata.datasets[0]={};
 
-energydata.datasets[0].backgroundColor = "#AAFF66";
-energydata.datasets[0].borderColor = "#AAFF66";
+
 
 $(document).ready(function()
 {
 	serial = document.location.search.substr(8,12);
-	energydata.datasets[0].label = "kwh by month";
-	addChart();
+	year = document.location.search.substr(26,4);
+	$.getJSON("all-energy.json?serial="+serial+"&bymonth=1")
+    .done (function(result) {
+        loadNewData(result);
+        addChart();
 	hideError();
+    })
+    .fail (showError);		
+	
 	setInterval(updateChart(),6000);
 }
 );
@@ -26,48 +29,83 @@ Date.prototype.addDays = function(days) {
 
 function addChart()
 {
-	energyHist = new Chart($("#energybyday"), {
-										type: "bar",
-										data: energydata,
-										options:{responsive: true,
-										         zoom:{enabled: true,
-										               mode:   'x',},
-                                       pan:{enabled:true,
-                                            mode: 'x',},
-                                       title:{
-                                       			display:true,
-                                       			text: 'Energy Captured per Month',
-                                       		},
-                                       tooltips:{
-                                                callbacks:
-                                                	{
-                                                	label: function(tooltipItems, data){
-                                                		return tooltipItems.yLabel + ' KWh';},
-                                                	}
-                                                },
-									}}
+	energyHist = new Highcharts.chart({
+										chart: {
+										renderTo: 'energybymonth',
+                              zoomType: 'x',
+                              resetZoomButton: {
+							            position: {
+							                x: 0,
+							                y: -35
+							            }
+							         },
+                              panning: true,
+                              panKey:  'shift',
+										height:  '65%',
+				},
+global: {
+                              	useUTC: false,
+                                 timezoneOffset: 4 * 60,
+                              },
+series:  [{
+                                 type: 'column',
+                                 data: energydata,
+                                 name: serial,
+                                 color: '#AAFF66',                             
+                                 
+                              }],
+
+										
+                                 title:{
+                                 			display:true,
+                                 			text: 'Energy Captured per Month',
+                                 		},
+
+                             tooltip: {
+        pointFormat: '{series.name}: <b>{point.y}</b><br/>',
+        valueSuffix: ' kwh',
+        shared: true
+    },
+                                xAxis: {
+                                		type: 'datetime',
+												dateTimeLabelFormats: {
+       									       day: '%b-%y'
+    									      },
+                                		labels: {
+	                                    formatter: function () {
+	                                    	var self = this;
+	                                       var label = this.axis.defaultLabelFormatter.call(self);
+													   return label;
+												   },
+												},
+                                		title: {
+                                		text: 'date',
+                                		
+                                	},
+                                },
+                             
+                                yAxis: {
+                                    title: {
+                                       text: 'Kilowatt-hours'
+                                    },                                    
+                                },
+                                       
+									}
 										);
-	$.getJSON("all-energy.json?serial="+serial+"&bymonth=1")
-    .done (function(result) {
-    	  hideError();
-        loadNewData(result);
-    })
-    .fail (showError);									
+								
 }
 
 function loadNewData(incoming)
 {
+	var formatter = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
 	$.each(incoming.energy,function()
 	{
-		energydata.labels.push( this[0]);
-		
-		energydata.datasets[0].data.push((this[1] / 1000.0).toFixed(1));
+		var entry = {};
+		entry.name = formatter.format(new Date(this[0]));
+		entry.x = Date.parse(this[0]);
+		entry.y = parseFloat((this[1] / 1000.0).toFixed(1));
+		energydata.push(entry);
 	});
-	
-	energyHist.update();
-}
-function updateChart()
-{
 	
 }
 
