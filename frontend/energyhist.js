@@ -1,19 +1,24 @@
 var serial = "";
-var energydata = {};
+var year = "";
+var energydata = [];
 var energyHist = {};
-energydata.datasets=[];
-energydata.labels=[];
-energydata.datasets[0]={};
 
-energydata.datasets[0].backgroundColor = "#6F3D86";
-energydata.datasets[0].borderColor = "#70A4B2";
+
 
 $(document).ready(function()
 {
-	serial = document.location.search.substr(8,99);
-	energydata.datasets[0].label = serial;
-	addChart();
+	serial = document.location.search.substr(8,12);
+	year = document.location.search.substr(26,4);
+	$.getJSON("all-energy.json?serial="+serial+"&year="+year)
+    .done (function(result) {
+    	  hideError();
+    	  addMissingDays(result);
+        loadNewData(result);
+        addChart();
 	hideError();
+    })
+    .fail (showError);		
+	
 	setInterval(updateChart(),6000);
 }
 );
@@ -26,42 +31,78 @@ Date.prototype.addDays = function(days) {
 
 function addChart()
 {
-	energyHist = new Chart($("#energybyday"), {
-										type: "bar",
-										data: energydata,
-										options:{responsive: true,
-										         zoom:{enabled: true,
-										               mode:   'x',},
-                                       pan:{enabled:true,
-                                            mode: 'x',},
-                                       title:{
-                                       			display:true,
-                                       			text: 'Energy Captured per Day',
-                                       		},
-                                       tooltips:{
-                                                callbacks:
-                                                	{
-                                                	label: function(tooltipItems, data){
-                                                		return tooltipItems.yLabel + ' KWh';},
-                                                	}
-                                                },
-									}}
+	energyHist = new Highcharts.chart({
+										chart: {
+										renderTo: 'energybyday',
+                              zoomType: 'x',
+                              resetZoomButton: {
+							            position: {
+							                x: 0,
+							                y: -35
+							            }
+							         },
+                              panning: true,
+                              panKey:  'shift',
+				// height:  '65%',
+				},
+				tooltip: {
+        valueSuffix: ' kwh',
+    },
+global: {
+                              	useUTC: false,
+                                 timezoneOffset: 4 * 60,
+                              },
+series:  [{
+                                 type: 'column',
+                                 data: energydata,
+                                 name: serial,
+                                 lineColor: '#70A4B2',
+                                 color: '#6F3D86',                             
+                                 
+                              }],
+
+										
+                                 title:{
+                                 			display:true,
+                                 			text: 'Energy Captured per Day',
+                                 		},
+
+                             
+                                xAxis: {
+                                		type: 'datetime',
+												dateTimeLabelFormats: {
+       									       day: '%Y-%m-%d'
+    									      },
+                                		labels: {
+	                                    formatter: function () {
+	                                    	var self = this;
+	                                       var label = this.axis.defaultLabelFormatter.call(self);
+													   return label;
+												   },
+												},
+                                		title: {
+                                		text: 'date',
+                                		
+                                	},
+                                },
+                             
+                                yAxis: {
+                                    title: {
+                                       text: 'Kilowatt-hours'
+                                    },                                    
+                                },
+                                       
+									}
 										);
-	$.getJSON("all-energy.json?serial="+serial)
-    .done (function(result) {
-    	  hideError();
-    	  addMissingDays(result);
-        loadNewData(result);
-    })
-    .fail (showError);									
+								
 }
 
 function addMissingDays(energyarray)
 {
 	var date = new Date(energyarray.energy[0][0]);
 	var energyindex = 0;
-	var today = new Date();
-	while (date < today)
+	var end = new Date(energyarray.energy[energyarray.energy.length-1][0]);
+	while (date < end)
 	{
 		var foo = new Date(energyarray.energy[energyindex][0]);
 		
@@ -79,12 +120,14 @@ function loadNewData(incoming)
 {
 	$.each(incoming.energy,function()
 	{
-		energydata.labels.push( this[0]);
+		var entry = {};
 		
-		energydata.datasets[0].data.push((this[1] / 1000.0).toFixed(1));
+		entry.name = this[0];
+		entry.x = Date.parse(this[0]);
+		entry.y = parseFloat((this[1] / 1000.0).toFixed(1));
+		energydata.push(entry);
 	});
 	
-	energyHist.update();
 }
 function updateChart()
 {
