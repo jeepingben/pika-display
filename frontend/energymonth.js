@@ -17,7 +17,6 @@ $(document).ready(function()
     })
     .fail (showError);		
 	
-	setInterval(updateChart(),6000);
 }
 );
 Date.prototype.addDays = function(days) {
@@ -97,11 +96,18 @@ series:  [{
 
 function loadNewData(incoming)
 {
-	var formatter = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
-	$.each(incoming.energy,function()
+	var formatter;
+        if (typeof(Intl) !== "undefined") {
+            formatter = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
+	}
+        $.each(incoming.energy,function()
 	{
 		var entry = {};
+                if (formatter) {
 		entry.name = formatter.format(new Date(this[0]));
+                } else {
+                 entry.name = new Date(this[0]).toLocaleFormat('%B %Y');
+                }
 		entry.x = Date.parse(this[0]);
 		entry.y = parseFloat((this[1] / 1000.0).toFixed(1));
 		energydata.push(entry);
