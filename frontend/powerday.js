@@ -46,6 +46,8 @@ var tooltip = "<tspan>" + ttdate.toLocaleString() + "</tspan><br><tspan>"+this.y
                                 },
                                 
                                 yAxis: {
+                                    min: -15,
+                                    startOnTick: false,
                                     title: {
                                        text: 'Power in watts'
                                     },                                    
