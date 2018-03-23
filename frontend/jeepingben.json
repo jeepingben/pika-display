@@ -31,7 +31,7 @@ my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not con
 #PREPARE THE QUERY
 my $serials_query=qq(select distinct serial from power_statuses order by serial desc;);
 
-my $last_power_query =qq(select * from 
+my $last_power_query =qq(select *,ifNull(message,subq.status) as statmessage from 
    (select serial,name,status,type,watts_now,watthours_total,m,ti,DATE_FORMAT(update_time,'%Y-%m-%d %H:%i:%s -0004') as fupdate_time,voltage             
     from power_statuses where serial =? order by update_time desc limit 1) as subq inner join status_messages on inverter_value = subq.status;);
 
@@ -50,7 +50,7 @@ while (my $srow = $serials_handle1->fetchrow_hashref){
 	 
 		push (@chart1_data,{ 's' => $row->{'serial'}, 
 		                     'n'=> $row->{'name'},
-		                     'st'=> $row->{'message'},
+		                     'st'=> $row->{'statmessage'},
 		                     'sc'=> $row->{'classification'},
 		                     't'=> $row->{'type'},
 		                     'p'=> $row->{'watts_now'}, 
