@@ -47,7 +47,6 @@ while (my $srow = $serials_handle1->fetchrow_hashref){
 	$last_power_qhandle->execute($serial);
 	
 	while (my $row = $last_power_qhandle->fetchrow_hashref){
-	 
 		push (@chart1_data,{ 's' => $row->{'serial'}, 
 		                     'n'=> $row->{'name'},
 		                     'st'=> $row->{'statmessage'},
@@ -62,7 +61,7 @@ while (my $srow = $serials_handle1->fetchrow_hashref){
 		                     
 		                     }); 
 	}
-	if (index($chart1_data[-1]{'t'},'Inverter')) {
+	if (index($chart1_data[-1]{'t'},'Inverter') != -1) {
 $today_handle->execute($serial);
 while(my $row = $today_handle->fetchrow_hashref)
 {
