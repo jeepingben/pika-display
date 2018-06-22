@@ -47,6 +47,14 @@ function loadNewData(powerData) {
         }
         $("#" + this.s + "powerNow").html( "<a href='powerday.html?serial="+this.s+"'>" + this.p + "W</a>");
 	if (this.t.indexOf("Inverter") !== -1) {
+	if (this.x) {
+		$("#" + this.s + "importExport").html("<a style='font-size: 1.5em' href='export.html?serial="+this.s+"'>&#x21C4</a>");
+		if (this.x > 0) {
+			$("#" + this.s + "importExport a").css('color', 'green');
+		} else {
+			$("#" + this.s + "importExport a").css('color', 'red');
+		}
+	}
         $("#" + this.s + "inverterTotal").html("<a href='energymonth.html?serial="+this.s+"'>" + (this.et / 1000.0).toFixed(1) + "Kwh</a>");
         $("#" + this.s + "powerToday").html("<a href='energyhist.html?serial="+this.s+"'>" + (this.ed / 1000.0).toFixed(1) + "Kwh</a>");
         } else {
@@ -123,6 +131,7 @@ function addDevice(serial, deviceType) {
         "Status: <div class='devicefield' id=" + serial + "inverterStatus></div>" +
         "<div>Power: <span class='devicefield' id=" + serial + "powerNow></span></div>" +
         "<div>Total Energy Captured: <span class='deviceField' id=" + serial + "inverterTotal></span></div>" +
+	"<div id='"+ serial + "importExport' class='float-right'></div>" +
         "</div>").appendTo("#devices");
 
     if (deviceType.indexOf("Inverter") !== -1) {
