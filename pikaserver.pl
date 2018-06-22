@@ -107,7 +107,10 @@ while ($continue) {
         #Get some data into the format the db expects.
 	$gridwatts = undef;
         if ($devtype == 7) {
-		$gridwatts = $dcvolts;
+		#The inverter reports this value if CTs are not installed.
+		if ($dcvolts != 0x8000) {
+			$gridwatts = $dcvolts;
+		}
 		$dcvolts = 0;
 	}
 	else {
