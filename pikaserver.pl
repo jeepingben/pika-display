@@ -4,8 +4,10 @@ use IO::Socket::INET;
 use DBI qw(:sql_types);
 use HTTP::Date;
 use Proc::Daemon;
-
-Proc::Daemon::Init({work_dir=>'/root',});
+#$debug=true;
+if (!$debug) {
+   Proc::Daemon::Init({work_dir=>'/root',});
+}
 
 #Interpret power production data from a Pika Energy Island inverter
 # insert it into a database
@@ -31,18 +33,19 @@ unless($config = do $configfile) {
 open(LOGFILE, '>>', '/root/odd-packets.txt') or die "couldn't open logfile\n";
 #auto-flush on socket
 $| = 1;
-my($dbname, $host, $dbusername, $dbpasswd, $filename);#Satisfy strict
+my($dbname, $host, $port, $dbusername, $dbpasswd, $filename);#Satisfy strict
 $dbname = $config->{dbname};
 $host = $config->{host};
 $dbusername = $config->{dbusername};
 $dbpasswd = $config->{dbpasswd};
+$port = $config->{port};
 my $datasource = "dbi:mysql:database=$dbname;host=$host";
 my $dbh = DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
 $dbh->{
     mysql_auto_reconnect
 } = 1;
 #print "connected to db\n";
-my $insert1 = qq(insert into power_statuses(serial, name, status, type, watts_now, watthours_total, update_time, voltage) values( ? , ? , ? , ? , ? , ? , UTC_Timestamp(), ? ));
+my $insert1 = qq(insert into power_statuses(serial, name, status, type, watts_now, watthours_total, update_time, voltage) values( ? , ? , ? , ? , ? , ? , now(), ? ));
 my $insert_handle1 = $dbh->prepare($insert1);
 my $PORT = 4153;
 #creating a listening socket
@@ -100,20 +103,23 @@ while ($continue) {
     }
     elsif($data =~ m/UPDT/ ) {
         #Here is the most important line in the file VVVVVVVVVVVVVVV
-        my($packettype, $serial, $flag, $status, $watts, $wattsTotal, $devtype, $dcvolts, $dunno, $wattstoday, $therest) = unpack 'A4H10CssIssH34sH*', $data;
+        my($packettype, $serial, $flag, $status, $watts, $wattsTotal, $devtype, $rebusvolts, $ddunno, $acvolts, $dunno, $dcvolts, $therest) = unpack 'A4H10CssIssH34sH4sH*', $data;
         #Get some data into the format the db expects.
         $dcvolts = int($dcvolts) / 10.0;
+        $acvolts = int($acvolts) / 10.0;
         $serial = "00$serial";
         if ($debug) {
-            print "s:$serial st:$status p:$watts etotal:$wattsTotal etoday:$wattstoday  v:$dcvolts \n";
+            print "s:$serial st:$status p:$watts etotal:$wattsTotal etoday:$wattstoday a:$acvolts v:$dcvolts \n";
         }
-        if ($serial =~ m/e7$ / && $debug) {
+     if ($serial =~ m/e7$ / && $debug) {
             my $all = unpack 'H*', $data;
             print "$all\n";
         }
         my $devname = "PV Link";
-        if ($serial =~ m/^ 00010007 / ) {
+	$volts = $dcvolts;
+        if ($serial =~ m/^00010007/ ) {
             $devname = "X7601 Inverter";
+	    $volts = $acvolts;
         }
         $data = "";
         $client_socket->send($data);
@@ -121,7 +127,7 @@ while ($continue) {
         $insert_handle1->bind_param(5, $watts, SQL_INTEGER);
         $insert_handle1->bind_param(6, $wattsTotal, SQL_INTEGER);
         $insert_handle1->bind_param(7, $status, SQL_INTEGER);
-        $insert_handle1->execute($serial, $devname, $status, $devname, int($watts), int($wattsTotal), $dcvolts);
+        $insert_handle1->execute($serial, $devname, $status, $devname, int($watts), int($wattsTotal), $volts);
 
     } else {
         my $all = unpack 'H*', $data;
