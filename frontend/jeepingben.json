@@ -33,7 +33,7 @@ my $serials_query=qq(select distinct serial from power_statuses order by serial 
 
 my $last_power_query =qq(select *,ifNull(message,subq.status) as statmessage from 
    (select serial,name,status,type,watts_now,watthours_total,m,ti,DATE_FORMAT(update_time,'%Y-%m-%d %H:%i:%s -0004') as fupdate_time,voltage             
-    from power_statuses where serial =? order by update_time desc limit 1) as subq inner join status_messages on inverter_value = subq.status;);
+    from power_statuses where serial =? order by update_time desc limit 1) as subq left join status_messages on inverter_value = subq.status;);
 
 my $today_power_query = qq{select max(watthours_total) - min(watthours_total) as etoday from power_statuses where update_time between curdate() and now() and serial = ?;};
 my $last_power_qhandle = $dbh->prepare($last_power_query);
