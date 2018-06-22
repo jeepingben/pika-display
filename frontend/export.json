@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+use strict ;
+use warnings;
+use JSON::XS;
+use HTTP::Date;
+use IO::File;
+use DateTime;
+
+use DBI qw(:sql_types);
+use POSIX;
+
+use CGI;
+my $query = new CGI;
+my $serial = lc($query->param('serial'));
+my $startdate = $query->param('date');
+my $duration    = $query->param('duration');
+my $endtime = 0;
+
+if (!$serial) #default for running from the cmdline
+{
+        $serial = '0001000700ab';
+}
+if (!$startdate)
+{
+	$startdate='NOW()';
+}
+my $config;
+my $configfile = "config.pl";
+        unless ($config = do $configfile) {
+            die "couldn't parse $configfile: $@" if $@;
+            die "couldn't do $configfile: $!"    unless defined $config;
+            die "couldn't run $configfile"       unless $config;
+        }
+print "Access-Control-Allow-Origin: *\n";
+print "Content-type: text/json\n\n"; 
+my $json = JSON::XS->new->ascii->pretty->allow_nonref;
+
+my ( $dbname , $host , $port , $dbusername , $dbpasswd,$filename ) ; # Satisfy strict
+$dbname=$config->{dbname};
+$host=$config->{host};
+$dbusername=$config->{dbusername};
+$dbpasswd=$config->{dbpasswd};
+
+my $datasource = "dbi:mysql:database=$dbname;host=$host";
+#PERL DBI CONNECT
+my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
+#PREPARE THE QUERY
+my $detail_power_query = qq(SELECT avg(export_watts) as export_watts, avg(watts_now) as watts_now, avg(watts_now - export_watts) as house_watts, max(update_time) as update_time, ROUND(UNIX_TIMESTAMP(update_time)/(2 * 60)) AS timekey FROM power_statuses WHERE serial =? and update_time BETWEEN DATE($startdate) AND ($startdate + 1) GROUP BY timekey order by update_time;);
+my $detail_power_qhandle = $dbh->prepare($detail_power_query);
+
+my %power_data;
+$power_data{"serial"}=$serial;
+
+my @entries;
+#Return data at 2 minute intervals in the specified time period
+	$detail_power_qhandle->execute($serial);
+
+	while( my $row = $detail_power_qhandle->fetchrow_hashref ) {
+	my @w_entry;
+	
+	push(@w_entry, ((str2time($row->{'update_time'}) )));   
+	push(@w_entry, int($row->{'export_watts'})); 
+	push(@w_entry, int($row->{'watts_now'})); 
+	push(@w_entry, int($row->{'house_watts'})); 
+	
+	push (@entries, [@w_entry]);
+	}
+$power_data{"entries"} = \@entries;
+
+$dbh->disconnect();
+
+#JSON OUTPUT
+my $chart1_data_json=encode_json( \%power_data );
+print $chart1_data_json."\n";
+
