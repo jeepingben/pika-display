@@ -45,7 +45,7 @@ $dbh->{
     mysql_auto_reconnect
 } = 1;
 #print "connected to db\n";
-my $insert1 = qq(insert into power_statuses(serial, name, status, type, watts_now, watthours_total, update_time, voltage) values( ? , ? , ? , ? , ? , ? , now(), ? ));
+my $insert1 = qq(insert into power_statuses(serial, name, status, type, watts_now, watthours_total, update_time, voltage, export_watts) values( ? , ? , ? , ? , ? , ? , now(), ?, ? ));
 my $insert_handle1 = $dbh->prepare($insert1);
 my $PORT = 4153;
 #creating a listening socket
@@ -103,21 +103,29 @@ while ($continue) {
     }
     elsif($data =~ m/UPDT/ ) {
         #Here is the most important line in the file VVVVVVVVVVVVVVV
-        my($packettype, $serial, $flag, $status, $watts, $wattsTotal, $devtype, $rebusvolts, $ddunno, $acvolts, $dunno, $dcvolts, $therest) = unpack 'A4H10CssIssH34sH4sH*', $data;
+        my($packettype, $serial, $flag, $status, $watts, $wattsTotal, $devtype, $ddunno, $acvolts, $dunnothisone, $dcvolts, $dunno, $wattslone, $wattsltwo, $therest) = unpack 'A4H10CssIsH36sssH24ssH*', $data;
         #Get some data into the format the db expects.
-        $dcvolts = int($dcvolts) / 10.0;
+	$gridwatts = undef;
+        if ($devtype == 7) {
+		$gridwatts = $dcvolts;
+		$dcvolts = 0;
+	}
+	else {
+             $dcvolts = int($dcvolts) / 10.0;
+	}
         $acvolts = int($acvolts) / 10.0;
         $serial = "00$serial";
-        if ($debug) {
-            print "s:$serial st:$status p:$watts etotal:$wattsTotal etoday:$wattstoday a:$acvolts v:$dcvolts \n";
-        }
-     if ($serial =~ m/e7$ / && $debug) {
+     if ($devtype == 7 && $debug) {
             my $all = unpack 'H*', $data;
-            print "$all\n";
+#            print "$all\n";
+            print "t: $devtype s:$serial st:$status p:$watts etotal:$wattsTotal etoday:$wattstoday $ddunno a:$acvolts w:$wattslone $wattsltwo gridwatts: $gridwatts \n";
         }
+	elsif ($debug) {
+#		 print "s:$serial st:$status p:$watts etotal:$wattsTotal etoday:$wattstoday $ddunno a:$acvolts w:$wattslone $wattsltwo v:$dcvolts \n";
+	}
         my $devname = "PV Link";
 	$volts = $dcvolts;
-        if ($serial =~ m/^00010007/ ) {
+        if ($devtype == 7) {
             $devname = "X7601 Inverter";
 	    $volts = $acvolts;
         }
@@ -127,7 +135,7 @@ while ($continue) {
         $insert_handle1->bind_param(5, $watts, SQL_INTEGER);
         $insert_handle1->bind_param(6, $wattsTotal, SQL_INTEGER);
         $insert_handle1->bind_param(7, $status, SQL_INTEGER);
-        $insert_handle1->execute($serial, $devname, $status, $devname, int($watts), int($wattsTotal), $volts);
+        $insert_handle1->execute($serial, $devname, $status, $devname, int($watts), int($wattsTotal), $volts, $gridwatts);
 
     } else {
         my $all = unpack 'H*', $data;
