@@ -34,6 +34,7 @@ CREATE TABLE `power_statuses` (
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `voltage` int(11) DEFAULT NULL,
   `watthours_now` int(11) DEFAULT NULL,
+  `export_watts` int(11) DEFAULT NULL,
   KEY `date_idx` (`update_time`),
   KEY `ser_idx` (`serial`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
