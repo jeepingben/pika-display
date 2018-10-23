@@ -18,7 +18,7 @@ if (!$serial) #default for running from the cmdline
 }
 
 my $config;
-my $configfile = "config.pl";
+my $configfile = "./config.pl";
         unless ($config = do $configfile) {
             die "couldn't parse $configfile: $@" if $@;
             die "couldn't do $configfile: $!"    unless defined $config;

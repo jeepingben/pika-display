@@ -28,7 +28,7 @@ if (!$startdate)
 	$startdate='NOW()';
 }
 my $config;
-my $configfile = "config.pl";
+my $configfile = "./config.pl";
         unless ($config = do $configfile) {
             die "couldn't parse $configfile: $@" if $@;
             die "couldn't do $configfile: $!"    unless defined $config;
