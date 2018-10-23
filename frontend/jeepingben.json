@@ -29,7 +29,7 @@ my $datasource = "dbi:mysql:database=$dbname;host=$host";
 #PERL DBI CONNECT
 my $dbh =DBI->connect($datasource, $dbusername, $dbpasswd) || die "Could not connect to database: $DBI::errstr";
 #PREPARE THE QUERY
-my $serials_query=qq(select distinct serial from power_statuses order by serial desc;);
+my $serials_query=qq(select serial from power_statuses group by serial order by serial desc;);
 
 my $last_power_query =qq(select *,ifNull(message,subq.status) as statmessage from 
    (select serial,name,status,type,watts_now,watthours_total,m,ti,DATE_FORMAT(update_time,'%Y-%m-%d %H:%i:%s -0004') as fupdate_time, voltage, export_watts             
