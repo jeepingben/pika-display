@@ -13,7 +13,7 @@ use POSIX;
 use CGI;
 my $query = new CGI;
 my $serial = lc($query->param('serial'));
-my $todayonly = $query->param('today') =~ m/true/;
+my $todayonly = defined($query->param('today')) && $query->param('today') =~ m/true/;
 my $startdate = $query->param('date');
 my $duration    = $query->param('duration');
 my $endtime = 0;
