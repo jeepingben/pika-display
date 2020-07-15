@@ -1,23 +1,24 @@
 
 /* c64 color palette from:
       http://unusedino.de/ec64/technical/misc/vic656x/colors */
-
-@c64_black:       #000000;
-@c64_white:       #FFFFFF;
-@c64_red:         #68372B;
-@c64_cyan:        #70A4B2;
-@c64_purple:      #6F3D86;
-@c64_green:       #588D43;
-@c64_blue:        #352879;
-@c64_yellow:      #B8C76F;
-@c64_orange:      #6F4F25;
-@c64_brown:       #433900;
-@c64_light_red:   #9A6759;
-@c64_dark_grey:   #444444;
-@c64_grey:        #6C6C6C;
-@c64_light_green: #9AD284;
-@c64_light_blue:  #6C5EB5;
-@c64_light_grey:  #959595;
+:root {
+--c64_black:       #000000;
+--c64_white:       #FFFFFF;
+--c64_red:         #68372B;
+--c64_cyan:        #70A4B2;
+--c64_purple:      #6F3D86;
+--c64_green:       #588D43;
+--c64_blue:        #352879;
+--c64_yellow:      #B8C76F;
+--c64_orange:      #6F4F25;
+--c64_brown:       #433900;
+--c64_light_red:   #9A6759;
+--c64_dark_grey:   #444444;
+--c64_grey:        #6C6C6C;
+--c64_light_green: #9AD284;
+--c64_light_blue:  #6C5EB5;
+--c64_light_grey:  #959595;
+}
 
 
 /*see font/LICENSE.txt for font license information*/
@@ -32,7 +33,7 @@
 }
 .page-header
 {
-	background-color: #959595;
+	background-color: var(--c64_light_grey);
 	font-family: 'start2p';
 }
 
@@ -50,10 +51,22 @@ font-size: 0.8vw;
 font-family: 'start2p';
 }
 
+.card-info
+{
+	background-color: var(--c64_cyan);
+}
+.card-success
+{
+	background-color: var(--c64_light_green);
+}
+.card-danger
+{
+	background-color: var(--c64_light_red);
+}
 html,body
 {
 	font-family: 'start2p';
-	background-color: #959595;
+	background-color: var(--c64_light_grey);
 }
 .devicefield
 {
@@ -72,7 +85,7 @@ display: inline-block;
 
 .errormsg
 {
-	color: red;
+	color: var(--c64_red);
 }
 
 @media screen and (max-width: 767px) {
