@@ -13,17 +13,16 @@ $(document).ready(function() {
 function updateDevices() {
     $.getJSON("jeepingben.json")
     .done (function(result) {
-    	  hideError();
+          hideError();
         loadNewData(result);
     })
     .fail (showError);
-    
 }
 
 function markAndUpdateDevices()
 {
-	markDevicesLoading();
-	updateDevices();
+    markDevicesLoading();
+    updateDevices();
 }
 
 function loadNewData(powerData) {
@@ -35,77 +34,76 @@ function loadNewData(powerData) {
         $("#" + this.s + "inverterStatus").text(this.st);
         switch( this.sc)
         {
-        	case "Good":
-        		$("#" + this.s + "inverterStatus").css('color', 'green');
-        		break;
-        	case "Neutral":
-        		$("#" + this.s + "inverterStatus").css('color', 'grey');
-        		break;
-        	case "Bad":
-        		$("#" + this.s + "inverterStatus").css('color', 'red');
-        		break;
+            case "Good":
+                $("#" + this.s + "inverterStatus").css('color', '#588D43');
+                break;
+            case "Neutral":
+                $("#" + this.s + "inverterStatus").css('color', 'grey');
+                break;
+            case "Bad":
+                $("#" + this.s + "inverterStatus").css('color', '#68372B');
+                break;
         }
         $("#" + this.s + "powerNow").html( "<a href='powerday.html?serial="+this.s+"'>" + this.p + "W</a>");
-	if (this.t.indexOf("Inverter") !== -1) {
-	if (this.x) {
-		$("#" + this.s + "importExport").html("<a style='font-size: 1.5em' href='export.html?serial="+this.s+"'>&#x21C4</a>");
-		if (this.x > 0) {
-			$("#" + this.s + "importExport a").css('color', 'green');
-		} else {
-			$("#" + this.s + "importExport a").css('color', 'red');
-		}
-	}
+    if (this.t.indexOf("Inverter") !== -1) {
+    if (this.x) {
+        $("#" + this.s + "importExport").html("<a style='font-size: 1.5em' href='export.html?serial="+this.s+"'>&#x21C4</a>");
+        if (this.x > 0) {
+            $("#" + this.s + "importExport a").css('color', '#588D43');
+        } else {
+            $("#" + this.s + "importExport a").css('color', '#68372B');
+        }
+    }
         $("#" + this.s + "inverterTotal").html("<a href='energymonth.html?serial="+this.s+"'>" + (this.et / 1000.0).toFixed(1) + "Kwh</a>");
         $("#" + this.s + "powerToday").html("<a href='energyhist.html?serial="+this.s+"'>" + (this.ed / 1000.0).toFixed(1) + "Kwh</a>");
         } else {
              $("#" + this.s + "inverterTotal").html("<a href='energyhist.html?serial="+this.s+"'>" + (this.et / 1000.0).toFixed(1) + "Kwh</a>");
-	}
-		  $("#" + this.s).removeClass("loading");
+    }
+          $("#" + this.s).removeClass("loading");
     });
 }
 
 function overrideStatus(device)
 {
-	// If data is stale, tell the user the device is offline
-	var lastupdate = new Date(Date(device.up));
-	var now = new Date();
-	var diff = now.getTime() - lastupdate.getTime();
-	if (now.getTime() - lastupdate.getTime() > 600 * 1000) //10 minutes
-	{
-		device.st = "Offline";
-		device.sc = "Bad";
-	}
+    // If data is stale, tell the user the device is offline
+    var lastupdate = new Date(Date(device.up));
+    var now = new Date();
+    var diff = now.getTime() - lastupdate.getTime();
+    if (now.getTime() - lastupdate.getTime() > 600 * 1000) //10 minutes
+    {
+        device.st = "Offline";
+        device.sc = "Bad";
+    }
 }
 
 function updateScores() {
-	
+
     $.getJSON("high-scores.json")
     .done (function(result) {
-    	  hideError();
+          hideError();
         loadHighScores(result);
     })
     .fail (showError);
-    	
 }
 
 function showError()
 {
-	$("#errormessage").show();
+    $("#errormessage").show();
 }
 function hideError()
 {
-	$("#errormessage").hide();
+    $("#errormessage").hide();
 }
 
 function markDevicesLoading()
 {
-	$.each($(".rebusitem"), function(){
-		$(this).addClass("loading");});
+    $.each($(".rebusitem"), function(){
+        $(this).addClass("loading");});
 }
 function markScoresLoading()
 {
-	$("#maxPower").addClass("loading");
-	$("#topDays").addClass("loading");
+    $("#maxPower").addClass("loading");
+    $("#topDays").addClass("loading");
 }
 
 function loadHighScores(scores) {
@@ -114,7 +112,7 @@ function loadHighScores(scores) {
     $.each(scores.best_output, function() {
         $("<div><span>" + this[0] + " " + this[1] + "W</span></div>").appendTo("#maxPower");
     });
-	 $("#maxPower").removeClass("loading");
+     $("#maxPower").removeClass("loading");
     $("#topDays").empty();
     $.each(scores.best_days, function() {
         $("<div><span>" + this[0] + " " + (this[1] / 1000.0).toFixed(1) + "Kwh</span></div>").appendTo("#topDays");
@@ -131,7 +129,7 @@ function addDevice(serial, deviceType) {
         "Status: <div class='devicefield' id=" + serial + "inverterStatus></div>" +
         "<div>Power: <span class='devicefield' id=" + serial + "powerNow></span></div>" +
         "<div>Total Energy Captured: <span class='deviceField' id=" + serial + "inverterTotal></span></div>" +
-	"<div id='"+ serial + "importExport' class='float-right'></div>" +
+    "<div id='"+ serial + "importExport' class='float-right'></div>" +
         "</div>").appendTo("#devices");
 
     if (deviceType.indexOf("Inverter") !== -1) {
