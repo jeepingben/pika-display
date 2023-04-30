@@ -1,4 +1,4 @@
-Offline Pika Energy-Island data-logger and display
+Offline Pika Energy-Island (and likely Generac PWRcell)  data-logger and display
 
 This application was written to make available the history information that Pika makes available through their ReView application, but without allowing the inverter to connect to the internet.  The pikaserver program needs to be run in a captive portal so that the inverter will think it is at 'samara.pika-energy.com'.  The server program then connects to a mysql database and inserts the data. The server also logs any packets it doesn't understand in a text logfile.  
 
